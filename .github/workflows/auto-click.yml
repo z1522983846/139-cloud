@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       note:
-        description: '备注说明（可选）'
+        description: '备注说明 (可选)''
         required: false
         default: '手动执行'
 
