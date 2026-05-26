@@ -28,6 +28,9 @@ def setup_driver(cookie_smid, cookie_thumbcache):
     chrome_options.add_argument('--disable-gpu')
     chrome_options.add_argument('--window-size=1920,1080')
     
+    # 指定 Chrome 二进制路径
+    chrome_options.binary_location = "/usr/bin/chromium-browser"
+    
     driver = webdriver.Chrome(options=chrome_options)
     
     driver.get("https://cloud.139.com")
