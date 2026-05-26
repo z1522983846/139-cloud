@@ -31,11 +31,12 @@ jobs:
     - name: Setup Chrome
       run: |
         sudo apt-get update
-        sudo apt-get install -y chromium-chromedriver
+        sudo apt-get install -y chromium-browser chromium-chromedriver
 
     - name: Run automation
       env:
         COOKIE_SMID: ${{ secrets.COOKIE_SMID }}
         COOKIE_THUMBCACHE: ${{ secrets.COOKIE_THUMBCACHE }}
+        CHROME_BIN: /usr/bin/chromium-browser
       run: |
         python auto_click.py
