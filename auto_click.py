@@ -56,8 +56,8 @@ def setup_driver(cookie_smid, cookie_thumbcache):
     return driver
 
 def click_by_position(driver, x, y):
-    script = f"""
-    var element = document.elementFromPoint({x}, {y});
+    script = """
+    var element = document.elementFromPoint(""" + str(x) + """, """ + str(y) + """);
     if (element) {
         element.click();
         return true;
@@ -69,16 +69,16 @@ def click_by_position(driver, x, y):
 
 def click_by_text(driver, text):
     try:
-        xpath = f"//*[contains(text(), '{text}')]"
+        xpath = "//*[contains(text(), '" + text + "')]"
         element = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, xpath))
         )
         driver.execute_script("arguments[0].scrollIntoView(true);", element)
         element.click()
-        logger.info(f"Clicked: {text}")
+        logger.info("Clicked: " + text)
         return True
     except Exception as e:
-        logger.warning(f"Click {text} failed: {str(e)}")
+        logger.warning("Click failed: " + str(e))
         return False
 
 def automate_click():
@@ -89,13 +89,13 @@ def automate_click():
         cookie_thumbcache = os.getenv('COOKIE_THUMBCACHE')
         
         if not cookie_smid or not cookie_thumbcache:
-            logger.error("Cookie missing, check GitHub Secrets")
+            logger.error("Cookie missing")
             raise ValueError("Cookie missing")
         
         logger.info("Starting browser...")
         driver = setup_driver(cookie_smid, cookie_thumbcache)
         
-        logger.info(f"Visiting: {CLOUD_PHONE_URL}")
+        logger.info("Visiting URL...")
         driver.get(CLOUD_PHONE_URL)
         time.sleep(5)
         
@@ -118,12 +118,10 @@ def automate_click():
         
         time.sleep(2)
         
-        logger.info("=" * 50)
-        logger.info("Task completed successfully")
-        logger.info("=" * 50)
+        logger.info("Task completed")
         
     except Exception as e:
-        logger.error(f"Task failed: {str(e)}")
+        logger.error("Task failed: " + str(e))
         raise
     finally:
         if driver:
