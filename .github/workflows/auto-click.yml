@@ -7,39 +7,37 @@ on:
   workflow_dispatch:
     inputs:
       note:
-        description: '备注说明 (可选)'
+        description: 'Test run'
         required: false
-        default: '手动执行'
+        default: 'manual'
 
 jobs:
   auto-click:
     runs-on: ubuntu-latest
     
     steps:
-    - name: 检出代码
+    - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: 设置 Python 环境
+    - name: Setup Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
 
-    - name: 安装依赖
+    - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install selenium==4.16.0
+        pip install webdriver-manager==4.0.1
 
-    - name: 安装 Chrome 浏览器
-      uses: browser-actions/setup-chrome@v1
-      with:
-        chrome-version: stable
+    - name: Setup Chrome
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y chromium-chromedriver
+        sudo cp /usr/lib/chromium-browser/chromedriver /usr/bin/
 
-    - name: 执行自动点击
+    - name: Run automation
       env:
         COOKIE_SMID: ${{ secrets.COOKIE_SMID }}
         COOKIE_THUMBCACHE: ${{ secrets.COOKIE_THUMBCACHE }}
       run: |
-        echo "开始执行自动点击任务..."
-        echo "执行时间：$(date)"
         python auto_click.py
-        echo "任务完成"
