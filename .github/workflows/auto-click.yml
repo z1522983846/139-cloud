@@ -39,3 +39,12 @@ jobs:
         COOKIE_THUMBCACHE: ${{ secrets.COOKIE_THUMBCACHE }}
       run: |
         python auto_click.py
+
+    - name: Upload logs
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: automation-logs
+        path: |
+          *.png
+        retention-days: 5
