@@ -7,6 +7,7 @@ from selenium.webdriver.support import expected_conditions as EC
 import time
 import logging
 import os
+import base64
 
 logging.basicConfig(
     level=logging.INFO,
@@ -17,6 +18,8 @@ logger = logging.getLogger(__name__)
 CLOUD_PHONE_URL = "https://cloud.139.com/#/instance?phoneId=32s2yvm9&lockStatus=0"
 WHITE_DOT_X = 237
 WHITE_DOT_Y = 575
+EXIT_BUTTON_X = 300
+EXIT_BUTTON_Y = 600
 ENTER_CLOUD_PHONE_X = 629
 ENTER_CLOUD_PHONE_Y = 735
 
@@ -52,6 +55,17 @@ def setup_driver(cookie_smid, cookie_thumbcache):
     
     return driver
 
+def save_screenshot(driver, step_name):
+    """截取屏幕并保存为 base64"""
+    try:
+        screenshot = driver.get_screenshot_as_base64()
+        logger.info("Screenshot saved for: " + step_name)
+        logger.info("Screenshot (base64, first 200 chars): " + screenshot[:200] + "...")
+        return screenshot
+    except Exception as e:
+        logger.error("Screenshot failed: " + str(e))
+        return None
+
 def click_by_position(driver, x, y):
     script = """
     var element = document.elementFromPoint(""" + str(x) + """, """ + str(y) + """);
@@ -78,26 +92,6 @@ def click_by_text(driver, text):
         logger.warning("Click failed: " + str(e))
         return False
 
-def click_popup_menu_item(driver, index=1):
-    """点击弹出菜单的第 index 项（从 1 开始）"""
-    try:
-        # 尝试点击弹出菜单的第一个按钮或链接
-        script = """
-        var buttons = document.querySelectorAll('button, a[role="button"], div[onclick]');
-        if (arguments[0] < buttons.length) {
-            buttons[arguments[0]].click();
-            return true;
-        }
-        return false;
-        """
-        result = driver.execute_script(script, index - 1)
-        if result:
-            logger.info("Popup menu item " + str(index) + " clicked")
-        return result
-    except Exception as e:
-        logger.warning("Click popup failed: " + str(e))
-        return False
-
 def automate_click():
     driver = None
     
@@ -112,9 +106,17 @@ def automate_click():
         logger.info("Starting browser...")
         driver = setup_driver(cookie_smid, cookie_thumbcache)
         
+        # 截图 1: 初始页面
+        logger.info("=== Screenshot 1: Initial Page ===")
+        save_screenshot(driver, "initial_page")
+        
         logger.info("Visiting URL...")
         driver.get(CLOUD_PHONE_URL)
         time.sleep(5)
+        
+        # 截图 2: 进入云手机页面后
+        logger.info("=== Screenshot 2: After Loading Cloud Phone ===")
+        save_screenshot(driver, "after_load")
         
         # Step 1: 点击小白点
         logger.info("Step 1: Click white dot...")
@@ -124,17 +126,24 @@ def automate_click():
         else:
             logger.warning("White dot click failed")
         
-        # 等待菜单弹出（增加到 5 秒）
+        time.sleep(2)
+        
+        # 截图 3: 点击小白点后
+        logger.info("=== Screenshot 3: After Clicking White Dot ===")
+        save_screenshot(driver, "after_white_dot")
+        
+        # 等待菜单弹出
         logger.info("Waiting for menu to appear...")
         time.sleep(5)
+        
+        # 截图 4: 菜单弹出后
+        logger.info("=== Screenshot 4: Menu Appeared ===")
+        save_screenshot(driver, "menu_appeared")
         
         # Step 2: 点击"退出云机"
         logger.info("Step 2: Try to click exit cloud phone...")
         
-        # 尝试多种方式
         exit_clicked = False
-        
-        # 方式 1: 文字匹配
         exit_texts = ["退出云机", "退出", "关闭云机", "云机管理"]
         for text in exit_texts:
             if click_by_text(driver, text):
@@ -142,11 +151,9 @@ def automate_click():
                 logger.info("Exit button clicked using text: " + text)
                 break
         
-        # 方式 2: 如果文字都失败，尝试点击坐标
         if not exit_clicked:
             logger.info("Trying coordinate click for exit button...")
-            # 尝试点击菜单第一个项目（大致位置）
-            result = click_by_position(driver, 300, 600)
+            result = click_by_position(driver, EXIT_BUTTON_X, EXIT_BUTTON_Y)
             if result:
                 exit_clicked = True
                 logger.info("Exit button clicked using coordinate")
@@ -156,8 +163,11 @@ def automate_click():
         else:
             logger.warning("Could not find exit button, skipping...")
         
-        # 等待页面切换
         time.sleep(3)
+        
+        # 截图 5: 点击退出后
+        logger.info("=== Screenshot 5: After Clicking Exit ===")
+        save_screenshot(driver, "after_exit")
         
         # Step 3: 点击"进入云手机"
         logger.info("Step 3: Click enter cloud phone...")
@@ -168,6 +178,10 @@ def automate_click():
             logger.warning("Enter cloud phone click failed")
         
         time.sleep(2)
+        
+        # 截图 6: 最终页面
+        logger.info("=== Screenshot 6: Final Page ===")
+        save_screenshot(driver, "final_page")
         
         logger.info("=" * 50)
         logger.info("Task completed")
