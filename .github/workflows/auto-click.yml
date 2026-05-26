@@ -24,7 +24,7 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: Install dependencies
+    - name: Install selenium
       run: |
         pip install selenium==4.16.0
 
