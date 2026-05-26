@@ -28,7 +28,7 @@ jobs:
       run: |
         pip install selenium==4.16.0
 
-    - name: Setup Chrome
+    - name: Install Chromium
       run: |
         sudo apt-get update
         sudo apt-get install -y chromium-browser chromium-chromedriver
@@ -37,6 +37,5 @@ jobs:
       env:
         COOKIE_SMID: ${{ secrets.COOKIE_SMID }}
         COOKIE_THUMBCACHE: ${{ secrets.COOKIE_THUMBCACHE }}
-        CHROME_BIN: /usr/bin/chromium-browser
       run: |
         python auto_click.py
