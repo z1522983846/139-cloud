@@ -16,16 +16,19 @@ logger = logging.getLogger(__name__)
 CLOUD_PHONE_URL = "https://cloud.139.com/#/instance?phoneId=32s2yvm9&lockStatus=0"
 
 # 精确坐标（根据最新截图分析）
-WHITE_DOT_X = 34
-WHITE_DOT_Y = 343
+# Step 1: 小白点
+WHITE_DOT_X = 786
+WHITE_DOT_Y = 993
 
-EXIT_BUTTON_X = 844
-EXIT_BUTTON_Y = 296
+# Step 2: 退出云机（弹窗中间）
+EXIT_BUTTON_X = 1093
+EXIT_BUTTON_Y = 758
 
-ENTER_CLOUD_PHONE_X = 1704
-ENTER_CLOUD_PHONE_Y = 390
+# Step 3: 进入云手机（蓝色区域）
+ENTER_CLOUD_PHONE_X = 1733
+ENTER_CLOUD_PHONE_Y = 423
 
-# 断线重连按钮坐标（屏幕中下位置）
+# Step 0: 重连按钮（云机连接异常弹窗）
 RECONNECT_BUTTON_X = 1123
 RECONNECT_BUTTON_Y = 954
 
@@ -97,7 +100,7 @@ def check_and_reconnect(driver):
             logger.info("Reconnect button clicked using text: " + text)
             return True
     
-    # 方式 2: 坐标点击（精准位置）
+    # 方式 2: 坐标点击
     logger.info("Trying coordinate click for reconnect button...")
     result = click_by_position(driver, RECONNECT_BUTTON_X, RECONNECT_BUTTON_Y)
     if result:
@@ -141,19 +144,21 @@ def automate_click():
         
         time.sleep(3)
         
-        # Step 2: 点击"退出云机"
-        logger.info("Step 2: Try to click exit cloud phone...")
+        # Step 2: 点击"退出云机"（弹窗中间）
+        logger.info("Step 2: Click exit cloud phone at (" + str(EXIT_BUTTON_X) + ", " + str(EXIT_BUTTON_Y) + ")...")
         
         exit_clicked = False
-        exit_texts = ["退出云机", "退出", "关闭云机", "云机管理"]
+        
+        # 先尝试文字匹配
+        exit_texts = ["退出云机", "退出", "关闭云机"]
         for text in exit_texts:
             if click_by_text(driver, text):
                 exit_clicked = True
                 logger.info("Exit button clicked using text: " + text)
                 break
         
+        # 如果文字失败，用坐标点击
         if not exit_clicked:
-            logger.info("Trying coordinate click for exit button at (" + str(EXIT_BUTTON_X) + ", " + str(EXIT_BUTTON_Y) + ")...")
             result = click_by_position(driver, EXIT_BUTTON_X, EXIT_BUTTON_Y)
             if result:
                 exit_clicked = True
@@ -162,7 +167,7 @@ def automate_click():
         if exit_clicked:
             logger.info("Exit cloud phone step completed")
         else:
-            logger.warning("Could not find exit button, skipping...")
+            logger.warning("Could not find exit button")
         
         time.sleep(3)
         
