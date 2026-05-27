@@ -1,8 +1,8 @@
 name: 139 云手机自动点击
 
 on:
-  # schedule:
-  #   - cron: '0 * * * *'
+   schedule:
+     - cron: '0 * * * *'
 
   workflow_dispatch:
     inputs:
