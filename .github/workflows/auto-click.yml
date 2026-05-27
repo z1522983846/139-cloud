@@ -41,7 +41,7 @@ jobs:
         python auto_click.py
 
     - name: Upload screenshots
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       if: always()
       with:
         name: screenshots-run-${{ github.run_number }}
