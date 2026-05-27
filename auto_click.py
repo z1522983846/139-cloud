@@ -25,6 +25,10 @@ EXIT_BUTTON_Y = 296
 ENTER_CLOUD_PHONE_X = 1704
 ENTER_CLOUD_PHONE_Y = 390
 
+# 断线重连按钮坐标（屏幕中下位置）
+RECONNECT_BUTTON_X = 1123
+RECONNECT_BUTTON_Y = 954
+
 def setup_driver(cookie_smid, cookie_thumbcache):
     chrome_options = Options()
     chrome_options.add_argument('--headless')
@@ -72,16 +76,36 @@ def click_by_position(driver, x, y):
 def click_by_text(driver, text):
     try:
         xpath = "//*[contains(text(), '" + text + "')]"
-        element = WebDriverWait(driver, 15).until(
+        element = WebDriverWait(driver, 5).until(
             EC.element_to_be_clickable((By.XPATH, xpath))
         )
         driver.execute_script("arguments[0].scrollIntoView(true);", element)
         element.click()
         logger.info("Clicked: " + text)
         return True
-    except Exception as e:
-        logger.warning("Click failed: " + str(e))
+    except:
         return False
+
+def check_and_reconnect(driver):
+    """检查是否有云机连接异常提示，如果有就点击重连"""
+    logger.info("Checking for cloud phone disconnection prompt...")
+    
+    # 方式 1: 尝试文字匹配
+    reconnect_texts = ["重连", "重新连接", "连接异常"]
+    for text in reconnect_texts:
+        if click_by_text(driver, text):
+            logger.info("Reconnect button clicked using text: " + text)
+            return True
+    
+    # 方式 2: 坐标点击（精准位置）
+    logger.info("Trying coordinate click for reconnect button...")
+    result = click_by_position(driver, RECONNECT_BUTTON_X, RECONNECT_BUTTON_Y)
+    if result:
+        logger.info("Reconnect button clicked using coordinate")
+        return True
+    
+    logger.info("No disconnection prompt found, continuing...")
+    return False
 
 def automate_click():
     driver = None
@@ -100,6 +124,12 @@ def automate_click():
         logger.info("Visiting URL...")
         driver.get(CLOUD_PHONE_URL)
         time.sleep(5)
+        
+        # Step 0: 检查是否有云机连接异常提示
+        logger.info("Step 0: Check for cloud phone disconnection...")
+        if check_and_reconnect(driver):
+            logger.info("Reconnected, waiting for page to stabilize...")
+            time.sleep(5)
         
         # Step 1: 点击小白点
         logger.info("Step 1: Click white dot at (" + str(WHITE_DOT_X) + ", " + str(WHITE_DOT_Y) + ")...")
