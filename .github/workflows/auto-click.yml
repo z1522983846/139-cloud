@@ -39,3 +39,4 @@ jobs:
         COOKIE_THUMBCACHE: ${{ secrets.COOKIE_THUMBCACHE }}
       run: |
         python auto_click.py
+# auto run enabled
