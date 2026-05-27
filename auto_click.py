@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 
 CLOUD_PHONE_URL = "https://cloud.139.com/#/instance?phoneId=32s2yvm9&lockStatus=0"
 
-# 精确坐标
 WHITE_DOT_X = 786
 WHITE_DOT_Y = 993
 EXIT_BUTTON_X = 1093
@@ -38,13 +37,15 @@ def setup_driver(cookie_smid, cookie_thumbcache):
     
     driver = webdriver.Chrome(options=chrome_options)
     
+    # 先访问目标域名，才能设置 Cookie
     driver.get("https://cloud.139.com")
-    time.sleep(2)
+    time.sleep(3)
     
+    # 设置 Cookie（指定 cloud.139.com 域名）
     driver.add_cookie({
         'name': 'smidV2',
         'value': cookie_smid,
-        'domain': '.139.com',
+        'domain': 'cloud.139.com',
         'path': '/',
         'secure': True
     })
@@ -52,7 +53,7 @@ def setup_driver(cookie_smid, cookie_thumbcache):
     driver.add_cookie({
         'name': '.thumbcache_5b7c44fefb14167545f4272c83419943',
         'value': cookie_thumbcache,
-        'domain': '.139.com',
+        'domain': 'cloud.139.com',
         'path': '/',
         'secure': True
     })
@@ -60,7 +61,6 @@ def setup_driver(cookie_smid, cookie_thumbcache):
     return driver
 
 def save_screenshot(driver, step_name):
-    """截图并保存到文件"""
     try:
         filename = f"screenshot_{step_name}.png"
         driver.save_screenshot(filename)
