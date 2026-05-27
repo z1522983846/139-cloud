@@ -15,26 +15,17 @@ logger = logging.getLogger(__name__)
 
 CLOUD_PHONE_URL = "https://cloud.139.com/#/instance?phoneId=32s2yvm9&lockStatus=0"
 
-# 精确坐标（根据最新截图分析）
-# Step 0a: 现在进入（闲置提示弹窗）
-ENTER_NOW_X = 971
-ENTER_NOW_Y = 954
-
-# Step 0b: 重连（云机连接异常）
-RECONNECT_BUTTON_X = 1123
-RECONNECT_BUTTON_Y = 954
-
-# Step 1: 小白点
+# 精确坐标
 WHITE_DOT_X = 786
 WHITE_DOT_Y = 993
-
-# Step 2: 退出云机（弹窗中间）
 EXIT_BUTTON_X = 1093
 EXIT_BUTTON_Y = 758
-
-# Step 3: 进入云手机（蓝色区域）
 ENTER_CLOUD_PHONE_X = 1733
 ENTER_CLOUD_PHONE_Y = 423
+RECONNECT_BUTTON_X = 1123
+RECONNECT_BUTTON_Y = 954
+ENTER_NOW_X = 971
+ENTER_NOW_Y = 954
 
 def setup_driver(cookie_smid, cookie_thumbcache):
     chrome_options = Options()
@@ -68,6 +59,17 @@ def setup_driver(cookie_smid, cookie_thumbcache):
     
     return driver
 
+def save_screenshot(driver, step_name):
+    """截图并保存到文件"""
+    try:
+        filename = f"screenshot_{step_name}.png"
+        driver.save_screenshot(filename)
+        logger.info(f"Screenshot saved: {filename}")
+        return filename
+    except Exception as e:
+        logger.error(f"Screenshot failed: {str(e)}")
+        return None
+
 def click_by_position(driver, x, y):
     script = """
     var element = document.elementFromPoint(""" + str(x) + """, """ + str(y) + """);
@@ -94,49 +96,38 @@ def click_by_text(driver, text):
         return False
 
 def check_and_enter_now(driver):
-    """检查是否有闲置提示，如果有就点击现在进入"""
     logger.info("Checking for idle prompt...")
-    
-    # 方式 1: 文字匹配
     enter_texts = ["现在进入", "立即进入", "进入"]
     for text in enter_texts:
         if click_by_text(driver, text):
             logger.info("Enter now button clicked using text: " + text)
             return True
-    
-    # 方式 2: 坐标点击
     logger.info("Trying coordinate click for enter now button...")
     result = click_by_position(driver, ENTER_NOW_X, ENTER_NOW_Y)
     if result:
         logger.info("Enter now button clicked using coordinate")
         return True
-    
     logger.info("No idle prompt found, continuing...")
     return False
 
 def check_and_reconnect(driver):
-    """检查是否有云机连接异常提示，如果有就点击重连"""
-    logger.info("Checking for cloud phone disconnection prompt...")
-    
-    # 方式 1: 文字匹配
+    logger.info("Checking for disconnection prompt...")
     reconnect_texts = ["重连", "重新连接", "连接异常"]
     for text in reconnect_texts:
         if click_by_text(driver, text):
             logger.info("Reconnect button clicked using text: " + text)
             return True
-    
-    # 方式 2: 坐标点击
     logger.info("Trying coordinate click for reconnect button...")
     result = click_by_position(driver, RECONNECT_BUTTON_X, RECONNECT_BUTTON_Y)
     if result:
         logger.info("Reconnect button clicked using coordinate")
         return True
-    
     logger.info("No disconnection prompt found, continuing...")
     return False
 
 def automate_click():
     driver = None
+    step = 0
     
     try:
         cookie_smid = os.getenv('COOKIE_SMID')
@@ -149,35 +140,45 @@ def automate_click():
         logger.info("Starting browser...")
         driver = setup_driver(cookie_smid, cookie_thumbcache)
         
+        # 截图 1: 初始页面
+        step = 1
+        save_screenshot(driver, f"{step:02d}_initial_page")
+        
         logger.info("Visiting URL...")
         driver.get(CLOUD_PHONE_URL)
         time.sleep(5)
         
-        # Step 0a: 检查是否有闲置提示（现在进入）
+        # 截图 2: 加载后
+        step = 2
+        save_screenshot(driver, f"{step:02d}_after_load")
+        
+        # Step 0a: 检查闲置提示
         logger.info("Step 0a: Check for idle prompt...")
         if check_and_enter_now(driver):
             logger.info("Clicked enter now, waiting...")
             time.sleep(5)
+            step = 3
+            save_screenshot(driver, f"{step:02d}_after_enter_now")
         
-        # Step 0b: 检查是否有连接异常（重连）
-        logger.info("Step 0b: Check for disconnection prompt...")
+        # Step 0b: 检查连接异常
+        logger.info("Step 0b: Check for disconnection...")
         if check_and_reconnect(driver):
             logger.info("Reconnected, waiting...")
             time.sleep(5)
+            step = 4
+            save_screenshot(driver, f"{step:02d}_after_reconnect")
         
         # Step 1: 点击小白点
-        logger.info("Step 1: Click white dot at (" + str(WHITE_DOT_X) + ", " + str(WHITE_DOT_Y) + ")...")
+        logger.info(f"Step 1: Click white dot at ({WHITE_DOT_X}, {WHITE_DOT_Y})...")
         result = click_by_position(driver, WHITE_DOT_X, WHITE_DOT_Y)
-        if result:
-            logger.info("White dot clicked OK")
-        else:
-            logger.warning("White dot click failed")
+        logger.info("White dot clicked OK" if result else "White dot click FAILED")
         
+        step = 5
+        save_screenshot(driver, f"{step:02d}_after_white_dot")
         time.sleep(3)
         
-        # Step 2: 点击"退出云机"（弹窗中间）
-        logger.info("Step 2: Click exit cloud phone at (" + str(EXIT_BUTTON_X) + ", " + str(EXIT_BUTTON_Y) + ")...")
-        
+        # Step 2: 点击"退出云机"
+        logger.info(f"Step 2: Click exit cloud phone at ({EXIT_BUTTON_X}, {EXIT_BUTTON_Y})...")
         exit_clicked = False
         exit_texts = ["退出云机", "退出", "关闭云机"]
         for text in exit_texts:
@@ -185,28 +186,22 @@ def automate_click():
                 exit_clicked = True
                 logger.info("Exit button clicked using text: " + text)
                 break
-        
         if not exit_clicked:
             result = click_by_position(driver, EXIT_BUTTON_X, EXIT_BUTTON_Y)
-            if result:
-                exit_clicked = True
-                logger.info("Exit button clicked using coordinate")
+            logger.info("Exit button clicked using coordinate" if result else "Exit button click FAILED")
+            exit_clicked = result
         
-        if exit_clicked:
-            logger.info("Exit cloud phone step completed")
-        else:
-            logger.warning("Could not find exit button")
-        
+        step = 6
+        save_screenshot(driver, f"{step:02d}_after_exit")
         time.sleep(3)
         
         # Step 3: 点击"进入云手机"
-        logger.info("Step 3: Click enter cloud phone at (" + str(ENTER_CLOUD_PHONE_X) + ", " + str(ENTER_CLOUD_PHONE_Y) + ")...")
+        logger.info(f"Step 3: Click enter cloud phone at ({ENTER_CLOUD_PHONE_X}, {ENTER_CLOUD_PHONE_Y})...")
         result = click_by_position(driver, ENTER_CLOUD_PHONE_X, ENTER_CLOUD_PHONE_Y)
-        if result:
-            logger.info("Enter cloud phone clicked OK")
-        else:
-            logger.warning("Enter cloud phone click failed")
+        logger.info("Enter cloud phone clicked OK" if result else "Enter cloud phone click FAILED")
         
+        step = 7
+        save_screenshot(driver, f"{step:02d}_final_page")
         time.sleep(2)
         
         logger.info("=" * 50)
@@ -214,7 +209,10 @@ def automate_click():
         logger.info("=" * 50)
         
     except Exception as e:
-        logger.error("Task failed: " + str(e))
+        logger.error(f"Task failed: {str(e)}")
+        step += 1
+        if driver:
+            save_screenshot(driver, f"{step:02d}_error")
         raise
     finally:
         if driver:
