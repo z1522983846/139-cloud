@@ -11,9 +11,6 @@ on:
         required: false
         default: 'manual'
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   auto-click:
     runs-on: ubuntu-latest
@@ -41,12 +38,22 @@ jobs:
         COOKIE_SMID: ${{ secrets.COOKIE_SMID }}
         COOKIE_THUMBCACHE: ${{ secrets.COOKIE_THUMBCACHE }}
       run: |
+        echo "当前工作目录：$(pwd)"
         python auto_click.py
+        echo "截图文件列表："
+        ls -la *.png || echo "未找到 PNG 文件"
 
     - name: Upload screenshots
       uses: actions/upload-artifact@v5
       if: always()
       with:
         name: screenshots-run-${{ github.run_number }}
-        path: screenshot_*.png
+        path: |
+          01_before_cookie.png
+          02_after_refresh.png
+          03_after_white_dot.png
+          04_after_exit.png
+          05_final_page.png
+          06_error.png
         retention-days: 7
+        if-no-files-found: ignore
