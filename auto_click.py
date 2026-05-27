@@ -16,6 +16,14 @@ logger = logging.getLogger(__name__)
 CLOUD_PHONE_URL = "https://cloud.139.com/#/instance?phoneId=32s2yvm9&lockStatus=0"
 
 # 精确坐标（根据最新截图分析）
+# Step 0a: 现在进入（闲置提示弹窗）
+ENTER_NOW_X = 971
+ENTER_NOW_Y = 954
+
+# Step 0b: 重连（云机连接异常）
+RECONNECT_BUTTON_X = 1123
+RECONNECT_BUTTON_Y = 954
+
 # Step 1: 小白点
 WHITE_DOT_X = 786
 WHITE_DOT_Y = 993
@@ -27,10 +35,6 @@ EXIT_BUTTON_Y = 758
 # Step 3: 进入云手机（蓝色区域）
 ENTER_CLOUD_PHONE_X = 1733
 ENTER_CLOUD_PHONE_Y = 423
-
-# Step 0: 重连按钮（云机连接异常弹窗）
-RECONNECT_BUTTON_X = 1123
-RECONNECT_BUTTON_Y = 954
 
 def setup_driver(cookie_smid, cookie_thumbcache):
     chrome_options = Options()
@@ -89,11 +93,32 @@ def click_by_text(driver, text):
     except:
         return False
 
+def check_and_enter_now(driver):
+    """检查是否有闲置提示，如果有就点击现在进入"""
+    logger.info("Checking for idle prompt...")
+    
+    # 方式 1: 文字匹配
+    enter_texts = ["现在进入", "立即进入", "进入"]
+    for text in enter_texts:
+        if click_by_text(driver, text):
+            logger.info("Enter now button clicked using text: " + text)
+            return True
+    
+    # 方式 2: 坐标点击
+    logger.info("Trying coordinate click for enter now button...")
+    result = click_by_position(driver, ENTER_NOW_X, ENTER_NOW_Y)
+    if result:
+        logger.info("Enter now button clicked using coordinate")
+        return True
+    
+    logger.info("No idle prompt found, continuing...")
+    return False
+
 def check_and_reconnect(driver):
     """检查是否有云机连接异常提示，如果有就点击重连"""
     logger.info("Checking for cloud phone disconnection prompt...")
     
-    # 方式 1: 尝试文字匹配
+    # 方式 1: 文字匹配
     reconnect_texts = ["重连", "重新连接", "连接异常"]
     for text in reconnect_texts:
         if click_by_text(driver, text):
@@ -128,10 +153,16 @@ def automate_click():
         driver.get(CLOUD_PHONE_URL)
         time.sleep(5)
         
-        # Step 0: 检查是否有云机连接异常提示
-        logger.info("Step 0: Check for cloud phone disconnection...")
+        # Step 0a: 检查是否有闲置提示（现在进入）
+        logger.info("Step 0a: Check for idle prompt...")
+        if check_and_enter_now(driver):
+            logger.info("Clicked enter now, waiting...")
+            time.sleep(5)
+        
+        # Step 0b: 检查是否有连接异常（重连）
+        logger.info("Step 0b: Check for disconnection prompt...")
         if check_and_reconnect(driver):
-            logger.info("Reconnected, waiting for page to stabilize...")
+            logger.info("Reconnected, waiting...")
             time.sleep(5)
         
         # Step 1: 点击小白点
@@ -148,8 +179,6 @@ def automate_click():
         logger.info("Step 2: Click exit cloud phone at (" + str(EXIT_BUTTON_X) + ", " + str(EXIT_BUTTON_Y) + ")...")
         
         exit_clicked = False
-        
-        # 先尝试文字匹配
         exit_texts = ["退出云机", "退出", "关闭云机"]
         for text in exit_texts:
             if click_by_text(driver, text):
@@ -157,7 +186,6 @@ def automate_click():
                 logger.info("Exit button clicked using text: " + text)
                 break
         
-        # 如果文字失败，用坐标点击
         if not exit_clicked:
             result = click_by_position(driver, EXIT_BUTTON_X, EXIT_BUTTON_Y)
             if result:
