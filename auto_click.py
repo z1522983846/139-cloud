@@ -18,12 +18,10 @@ logger = logging.getLogger(__name__)
 CLOUD_PHONE_URL = "https://cloud.139.com/#/instance?phoneId=32s2yvm9&lockStatus=0"
 
 # 小白点坐标（根据截图分析）
-# 相对于整个页面的近似坐标
 WHITE_DOT_X = 237
 WHITE_DOT_Y = 575
 
 # "进入云手机"按钮坐标（蓝色正方形区域的中心点）
-# 根据截图分析，蓝色区域中心点约 (629, 735)
 ENTER_CLOUD_PHONE_X = 629
 ENTER_CLOUD_PHONE_Y = 735
 
@@ -66,6 +64,17 @@ def setup_driver(cookie_smid, cookie_thumbcache):
     time.sleep(3)
     
     return driver
+
+def save_screenshot(driver, step_name):
+    """截图并保存到文件"""
+    try:
+        filename = f"screenshot_{step_name}.png"
+        driver.save_screenshot(filename)
+        logger.info(f"截图已保存：{filename}")
+        return filename
+    except Exception as e:
+        logger.error(f"截图失败：{str(e)}")
+        return None
 
 def click_element_by_position(driver, x, y):
     """通过坐标点击元素（使用 JavaScript）"""
@@ -114,6 +123,7 @@ def click_by_partial_text(driver, text):
 def automate_click():
     """执行自动化点击任务"""
     driver = None
+    step = 0
     
     try:
         # 从环境变量获取 Cookie
@@ -127,9 +137,17 @@ def automate_click():
         logger.info("正在启动浏览器...")
         driver = setup_driver(cookie_smid, cookie_thumbcache)
         
+        # 截图 1：初始页面
+        step = 1
+        save_screenshot(driver, f"{step:02d}_initial_page")
+        
         logger.info(f"访问云手机页面：{CLOUD_PHONE_URL}")
         driver.get(CLOUD_PHONE_URL)
-        time.sleep(5)  # 等待页面加载
+        time.sleep(5)
+        
+        # 截图 2：加载后
+        step = 2
+        save_screenshot(driver, f"{step:02d}_after_load")
         
         # 步骤 1：点击小白点（坐标点击）
         logger.info("步骤 1：点击小白点...")
@@ -139,26 +157,30 @@ def automate_click():
             logger.info("✓ 小白点点击成功")
         else:
             logger.warning("✗ 小白点点击失败，尝试备用方案...")
-            # 备用方案：尝试查找小白点的元素
             try:
-                # 小白点通常是固定 class 或 id
                 white_dot = driver.find_element(By.CSS_SELECTOR, "[class*='assistive'], [id*='assistive'], .touch-assistant")
                 driver.execute_script("arguments[0].click();", white_dot)
                 logger.info("✓ 小白点点击成功（备用方案）")
             except Exception as e:
                 logger.error(f"✗ 小白点点击失败：{str(e)}")
         
-        time.sleep(2)  # 等待菜单弹出
+        time.sleep(2)
+        
+        # 截图 3：点击小白点后
+        step = 3
+        save_screenshot(driver, f"{step:02d}_after_white_dot")
         
         # 步骤 2：点击"退出云机"
         logger.info("步骤 2：点击'退出云机'...")
         if not click_by_partial_text(driver, "退出云机"):
             logger.warning("未找到'退出云机'，尝试其他关键词...")
-            # 尝试其他可能的文字
-            click_by_partial_text(driver, "退出") or \
-            click_by_partial_text(driver, "关闭")
+            click_by_partial_text(driver, "退出") or click_by_partial_text(driver, "关闭")
         
-        time.sleep(3)  # 等待页面反应（云手机列表加载可能需要更长时间）
+        time.sleep(3)
+        
+        # 截图 4：点击退出后
+        step = 4
+        save_screenshot(driver, f"{step:02d}_after_exit")
         
         # 步骤 3：点击"进入云手机"（固定坐标位置）
         logger.info("步骤 3：点击'进入云手机'按钮位置...")
@@ -168,11 +190,14 @@ def automate_click():
             logger.info("✓ 进入云手机按钮点击成功")
         else:
             logger.warning("✗ 坐标点击失败，尝试备用方案...")
-            # 备用方案：尝试通过文字查找（测试页面可能有文字）
             if not click_by_partial_text(driver, "进入云手机"):
                 logger.error("✗ 备用方案也失败了")
         
         time.sleep(2)
+        
+        # 截图 5：最终页面
+        step = 5
+        save_screenshot(driver, f"{step:02d}_final_page")
         
         logger.info("=" * 50)
         logger.info("✓ 任务执行完成")
@@ -180,6 +205,9 @@ def automate_click():
         
     except Exception as e:
         logger.error(f"✗ 执行失败：{str(e)}")
+        step += 1
+        if driver:
+            save_screenshot(driver, f"{step:02d}_error")
         raise
     finally:
         if driver:
